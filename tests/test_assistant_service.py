@@ -31,3 +31,13 @@ def test_add() -> None:
     result = service.process(request)
 
     assert result == "5.0"
+
+def test_length() -> None:
+    service = AssistantService()
+
+    request = Request(
+        action="length",
+        content="hello world"
+    )
+    result = service.process(request)
+    assert result == "11"
