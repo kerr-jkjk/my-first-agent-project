@@ -1,0 +1,16 @@
+model_name,ppl,iptm
+modelA,8,0.7
+modelA,10,0.8
+modelA,12,0.9
+modelB,6,0.6
+modelB,9,0.9
+modelB,11,0.7
+modelC,7,0.5
+modelC,5,0.8
+modelC,9,0.6
+modelA,,0.75
+modelB,abc,0.8
+modelC,8,
+,8,0.6
+modelD, 8, 0.6
+modelD, -1, 0.7
