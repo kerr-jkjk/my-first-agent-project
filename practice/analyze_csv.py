@@ -50,7 +50,7 @@ def analyze_csv(input_path, ppl_threshold=10.0, ipTM_threshold=0.6):
             continue
 
         # tag = 0
-        if (ppl <= ppl_threshold and ppl > 0) and (ipTM >= ipTM_threshold):
+        if (ppl <= ppl_threshold and ppl > 0) and (ipTM >= ipTM_threshold and ipTM <= 1):
             # tag = 1
 
             if model_name not in groups:
