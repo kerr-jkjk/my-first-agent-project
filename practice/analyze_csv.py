@@ -34,14 +34,14 @@ def analyze_csv(input_path, ppl_threshold=10.0, ipTM_threshold=0.6):
 
         model_name = row[0].strip()
         if not model_name:
-            skips["row" + str(rows)] = "跳过，模型名为空"
+            skips["row" + str(rows)] = {"reason":"跳过，模型名为空"}
             continue
 
         try:
             ppl = float(row[1])
             ipTM = float(row[2])
         except ValueError:
-            skips["row" + str(rows)] = "跳过，字段为空或格式不符"
+            skips["row" + str(rows)] = {"reason":"跳过，字段为空或格式不符"}
             continue
 
         # tag = 0
@@ -53,7 +53,7 @@ def analyze_csv(input_path, ppl_threshold=10.0, ipTM_threshold=0.6):
 
             groups[model_name].append([ppl, ipTM])
         else:
-            skips["row" + str(rows)] = "跳过，数值不在合理范围"
+            skips["row" + str(rows)] = {"reason":"跳过，数值不在合理范围"}
 
     result = {}
     for model_name, records in groups.items():

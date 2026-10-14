@@ -1,18 +1,18 @@
 {
   "modelA": {
-    "count": 1,
-    "mean_ppl": 8.0,
-    "mean_iptm": 0.7
+    "count": 2,
+    "mean_ppl": 9.0,
+    "mean_iptm": 0.75
   },
   "modelB": {
-    "count": 1,
-    "mean_ppl": 6.0,
-    "mean_iptm": 0.6
+    "count": 2,
+    "mean_ppl": 7.5,
+    "mean_iptm": 0.75
   },
   "modelC": {
-    "count": 1,
-    "mean_ppl": 5.0,
-    "mean_iptm": 0.8
+    "count": 2,
+    "mean_ppl": 7.0,
+    "mean_iptm": 0.7
   },
   "modelD": {
     "count": 1,
