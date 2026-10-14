@@ -15,7 +15,8 @@ def analyze_csv(input_path, ppl_threshold=10.0, ipTM_threshold=0.6):
     with open(input_path, mode='r', newline='', encoding='utf-8') as infile:
         reader = csv.reader(infile)
         header = next(reader, None) # 读取表头
-        data = [row for row in reader if len(row) == len(header)]   # 过滤掉不完整的行
+        # data = [row for row in reader if len(row) == len(header)]   # 过滤掉不完整的行，提前丢弃，会导致记录行号与原本行号不一致
+        data = [row for row in reader] 
 
     # 设定阈值
     # ppl_threshold = 8
@@ -25,12 +26,16 @@ def analyze_csv(input_path, ppl_threshold=10.0, ipTM_threshold=0.6):
     # 记录跳过的数据以及原因
     skips = {}
     # 记录当前处理数据行
-    rows = 0
+    # rows = 0
     # print(data)
     groups = {}
 
-    for row in data:
-        rows += 1
+    for rows, row in enumerate(data, start=2):
+        # rows += 1
+
+        if len(row) != len(header):
+            skips["row" + str(rows)] = {"reason":"跳过，列数与表头不一致"}
+            continue
 
         model_name = row[0].strip()
         if not model_name:
@@ -53,7 +58,7 @@ def analyze_csv(input_path, ppl_threshold=10.0, ipTM_threshold=0.6):
 
             groups[model_name].append([ppl, ipTM])
         else:
-            skips["row" + str(rows)] = {"reason":"跳过，数值不在合理范围"}
+            skips["row" + str(rows)] = {"reason":"跳过，不满足筛选条件或PPL非正"}
 
     result = {}
     for model_name, records in groups.items():

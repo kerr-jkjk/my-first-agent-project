@@ -12,7 +12,7 @@ with open(input_path, mode='r', newline='', encoding='utf-8') as infile:
     data = [row for row in reader if len(row) == len(header)]   # 过滤掉不完整的行
 ```
 
-命令行传参：
+解析命令行参数：
 
 ```python
 parser = argparse.ArgumentParser(description="筛选CSV数据并按模型统计均值")
@@ -23,6 +23,9 @@ parser.add_argument(
     default="data/sample.csv",
     help="输入文件路径"
 )
+
+# 运行命令
+python pratice/analyze.py --input-path data/sample2.csv
 ```
 
 写文件：
