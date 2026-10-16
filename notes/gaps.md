@@ -76,7 +76,7 @@ from practice.analyze_csv import analyze_csv
 - 写了一个测试代码test_csv.py，包括两个函数，分别测试analyze_csv.py功能是否正常，第一个测试函数测试是否能处理正确数据，第二个测试函数测试是否能够正确处理无效数据
 - 测试运行命令：
 ```bash
-python -m pytest test/test_csv.py [-v(会显示包版本)] [-q(静默输出)]
+python -m pytest tests/test_csv.py [-v(会显示包版本)] [-q(静默输出)]
 ```
 - 新目录安装运行成功
 - set(result)的这个set函数不太理解是什么意思：就是对result这个字典进行操作，取出其中的键，返回一个集合（注意集合这种数据类型无重复元素）

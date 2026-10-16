@@ -51,7 +51,7 @@ python -m app.main
 pytest
 ```
 ```bash
-pythom -m pytest test/test_csv.py
+pythom -m pytest tests/test_csv.py
 ```
 
 ## Project Structure
