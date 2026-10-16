@@ -69,3 +69,23 @@ from practice.analyze_csv import analyze_csv
 - 本次在指导下完成，后续需要练习独立拆分和实现函数。
 - 已知限制：
 
+
+
+## day04
+
+- 写了一个测试代码test_csv.py，包括两个函数，分别测试analyze_csv.py功能是否正常，第一个测试函数测试是否能处理正确数据，第二个测试函数测试是否能够正确处理无效数据
+- 测试运行命令：
+```bash
+python -m pytest test/test_csv.py [-v(会显示包版本)] [-q(静默输出)]
+```
+- 新目录安装运行成功
+- set(result)的这个set函数不太理解是什么意思：就是对result这个字典进行操作，取出其中的键，返回一个集合（注意集合这种数据类型无重复元素）
+```python
+{} # 空字典
+set() # 空集合
+{"a", "b"}  # 集合
+```
+- tmp_path是pytest提供的临时目录，让每个测试都有独立的文件存放位置，tmp / "example.csv" 是Path对象提供的路径拼接操作
+- imput_path.write_text()会创建文件
+- 注意测试文件命名需要按照这个标准`test_*.py或*_test.py`,测试函数命名需要按照这个标准`test_*`。这样pytest才会发现这些测试
+
