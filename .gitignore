@@ -24,3 +24,6 @@ logs/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# 私有数据
+data/private/
