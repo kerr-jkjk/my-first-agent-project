@@ -9,7 +9,7 @@ import argparse
 
 
 
-def analyze_csv(input_path, ppl_threshold=10.0, ipTM_threshold=0.6):
+def analyze_csv(input_path, ppl_threshold=10.0, ipTM_threshold_low=0.6, ipTM_threshold_high=1.0):
 
     # 打开文件，读取内容
     with open(input_path, mode='r', newline='', encoding='utf-8') as infile:
@@ -50,7 +50,7 @@ def analyze_csv(input_path, ppl_threshold=10.0, ipTM_threshold=0.6):
             continue
 
         # tag = 0
-        if (ppl <= ppl_threshold and ppl > 0) and (ipTM >= ipTM_threshold and ipTM <= 1):
+        if (ppl <= ppl_threshold and ppl > 0) and (ipTM >= ipTM_threshold_low and ipTM <= ipTM_threshold_high):
             # tag = 1
 
             if model_name not in groups:
@@ -98,10 +98,17 @@ def main():
     )
 
     parser.add_argument(
-        "--iptm-threshold",
+        "--iptm-threshold-low",
         type=float,
         default=0.6,
         help="允许的最小ipTM，默认0.6",
+    )
+
+    parser.add_argument(
+        "--iptm-threshold-high",
+        type=float,
+        default=1.0,
+        help="允许的最大ipTM，默认1.0"
     )
 
     args = parser.parse_args()

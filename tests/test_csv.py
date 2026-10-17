@@ -9,8 +9,8 @@ def test_analyze_csv_normal(tmp_path):
     input_path.write_text(
         "model_name,ppl,iptm\n"
         "modelA,8,0.7\n"
-        "modelA,10,0.8\n"
-        "modelA,12,0.9\n"
+        "modelA,10,0.9\n"
+        "modelA,8,0.9\n"
         "modelB,6,0.6\n",
         encoding="utf-8",
     )
@@ -18,21 +18,22 @@ def test_analyze_csv_normal(tmp_path):
     # 2. 执行待测函数
     result, skips = analyze_csv(input_path,
                                 ppl_threshold=10.0,
-                                ipTM_threshold=0.6,
+                                ipTM_threshold_low=0.6,
+                                ipTM_threshold_high=0.8
                                 )
 
     # 3.检查结果
     assert set(result) == {"modelA", "modelB"}
 
-    assert result["modelA"]["count"] == 2
-    assert result["modelA"]["mean_ppl"] == pytest.approx(9.0)
-    assert result["modelA"]["mean_iptm"] == pytest.approx(0.75)
+    assert result["modelA"]["count"] == 1
+    assert result["modelA"]["mean_ppl"] == pytest.approx(8.0)
+    assert result["modelA"]["mean_iptm"] == pytest.approx(0.7)
 
     assert result["modelB"]["count"] == 1
     assert result["modelB"]["mean_ppl"] == pytest.approx(6.0)
     assert result["modelB"]["mean_iptm"] == pytest.approx(0.6)
 
-    assert set(skips) == {"row4"}
+    assert set(skips) == {"row3", "row4"}
 
 
 
