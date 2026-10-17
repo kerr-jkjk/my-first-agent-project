@@ -114,7 +114,7 @@ def main():
     args = parser.parse_args()
 
 
-    result, skips = analyze_csv(input_path=args.input_path, ppl_threshold=args.ppl_threshold, ipTM_threshold=args.iptm_threshold)
+    result, skips = analyze_csv(input_path=args.input_path, ppl_threshold=args.ppl_threshold, ipTM_threshold_low=args.iptm_threshold_low, ipTM_threshold_high=args.iptm_threshold_high)
 
     with open("data/result.json", "w") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
