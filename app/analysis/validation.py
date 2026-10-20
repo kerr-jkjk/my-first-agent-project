@@ -1,4 +1,4 @@
-from analysis.models import CsvRecord, Summary
+from app.analysis.models import CsvRecord, Summary
 
 def parse_row(
     row: list[str],

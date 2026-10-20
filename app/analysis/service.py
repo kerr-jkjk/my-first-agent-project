@@ -16,13 +16,13 @@ def summarize_records(records: list[CsvRecord]) -> Summary:
     for model_name, csv_records in groups.items():
         count = len(csv_records)
 
-        ppl_mean = sum(csv_record[0] for csv_record in csv_records) / count
-        ipTM_mean = sum(csv_record[1] for csv_record in csv_records) / count
+        ppl_mean = sum(float(csv_record[0]) for csv_record in csv_records) / count
+        ipTM_mean = sum(float(csv_record[1]) for csv_record in csv_records) / count
 
         result[model_name] = {
             "count": count,
-            "ppl_mean": ppl_mean,
-            "ipTM_mean": ipTM_mean
+            "mean_ppl": ppl_mean,
+            "mean_iptm": ipTM_mean
         }
 
     return result
@@ -47,11 +47,11 @@ def analyze_csv(
 
         if result == None:
             skips["row" + str(rows)] = {"reason": reason}
-            return
+            continue
 
-        if not ((row[1] <= ppl_threshold and row[1] > 0) and (row[2] >= ipTM_threshold_low and row[2] <= ipTM_threshold_high)):
+        if not ((float(row[1]) <= ppl_threshold and float(row[1]) > 0) and (float(row[2]) >= ipTM_threshold_low and float(row[2]) <= ipTM_threshold_high)):
             skips["row" + str(rows)] = {"reason":"跳过，不满足筛选条件或PPL非正"}
-            return
+            continue
        
         records.append(result)
 

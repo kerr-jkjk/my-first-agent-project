@@ -12,6 +12,7 @@ from app.analysis.io import write_json
 
 
 
+
 # def analyze_csv(input_path, ppl_threshold=10.0, ipTM_threshold_low=0.6, ipTM_threshold_high=1.0):
 
 #     # 打开文件，读取内容
@@ -115,7 +116,6 @@ def main():
     )
 
     args = parser.parse_args()
-
 
     result, skips = analyze_csv(input_path=args.input_path, ppl_threshold=args.ppl_threshold, ipTM_threshold_low=args.iptm_threshold_low, ipTM_threshold_high=args.iptm_threshold_high)
 
