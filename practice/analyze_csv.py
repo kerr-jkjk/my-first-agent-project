@@ -6,77 +6,80 @@ import  csv
 import json
 import argparse
 
+from app.analysis.service import analyze_csv
+from app.analysis.io import write_json
 
 
 
-def analyze_csv(input_path, ppl_threshold=10.0, ipTM_threshold_low=0.6, ipTM_threshold_high=1.0):
 
-    # 打开文件，读取内容
-    with open(input_path, mode='r', newline='', encoding='utf-8') as infile:
-        reader = csv.reader(infile)
-        header = next(reader, None) # 读取表头
-        # data = [row for row in reader if len(row) == len(header)]   # 过滤掉不完整的行，提前丢弃，会导致记录行号与原本行号不一致
-        data = [row for row in reader] 
+# def analyze_csv(input_path, ppl_threshold=10.0, ipTM_threshold_low=0.6, ipTM_threshold_high=1.0):
 
-    # 设定阈值
-    # ppl_threshold = 8
-    # ipTM_threshold = 0.6
+#     # 打开文件，读取内容
+#     with open(input_path, mode='r', newline='', encoding='utf-8') as infile:
+#         reader = csv.reader(infile)
+#         header = next(reader, None) # 读取表头
+#         # data = [row for row in reader if len(row) == len(header)]   # 过滤掉不完整的行，提前丢弃，会导致记录行号与原本行号不一致
+#         data = [row for row in reader] 
+
+#     # 设定阈值
+#     # ppl_threshold = 8
+#     # ipTM_threshold = 0.6
 
 
-    # 记录跳过的数据以及原因
-    skips = {}
-    # 记录当前处理数据行
-    # rows = 0
-    # print(data)
-    groups = {}
+#     # 记录跳过的数据以及原因
+#     skips = {}
+#     # 记录当前处理数据行
+#     # rows = 0
+#     # print(data)
+#     groups = {}
 
-    for rows, row in enumerate(data, start=2):
-        # rows += 1
+#     for rows, row in enumerate(data, start=2):
+#         # rows += 1
 
-        if len(row) != len(header):
-            skips["row" + str(rows)] = {"reason":"跳过，列数与表头不一致"}
-            continue
+#         if len(row) != len(header):
+#             skips["row" + str(rows)] = {"reason":"跳过，列数与表头不一致"}
+#             continue
 
-        model_name = row[0].strip()
-        if not model_name:
-            skips["row" + str(rows)] = {"reason":"跳过，模型名为空"}
-            continue
+#         model_name = row[0].strip()
+#         if not model_name:
+#             skips["row" + str(rows)] = {"reason":"跳过，模型名为空"}
+#             continue
 
-        try:
-            ppl = float(row[1])
-            ipTM = float(row[2])
-        except ValueError:
-            skips["row" + str(rows)] = {"reason":"跳过，字段为空或格式不符"}
-            continue
+#         try:
+#             ppl = float(row[1])
+#             ipTM = float(row[2])
+#         except ValueError:
+#             skips["row" + str(rows)] = {"reason":"跳过，字段为空或格式不符"}
+#             continue
 
-        # tag = 0
-        if (ppl <= ppl_threshold and ppl > 0) and (ipTM >= ipTM_threshold_low and ipTM <= ipTM_threshold_high):
-            # tag = 1
+#         # tag = 0
+#         if (ppl <= ppl_threshold and ppl > 0) and (ipTM >= ipTM_threshold_low and ipTM <= ipTM_threshold_high):
+#             # tag = 1
 
-            if model_name not in groups:
-                groups[model_name] = []
+#             if model_name not in groups:
+#                 groups[model_name] = []
 
-            groups[model_name].append([ppl, ipTM])
-        else:
-            skips["row" + str(rows)] = {"reason":"跳过，不满足筛选条件或PPL非正"}
+#             groups[model_name].append([ppl, ipTM])
+#         else:
+#             skips["row" + str(rows)] = {"reason":"跳过，不满足筛选条件或PPL非正"}
 
-    result = {}
-    for model_name, records in groups.items():
-        count = len(records)    # 记录这个model有几组数据
-        # 单独取出每一组数据的第一个元素和第二个元素，也就是ppl和ipTM，然后求平均
-        ppl_mean = sum(record[0] for record in records) / count
-        ipTM_mean = sum(record[1] for record in records) / count
+#     result = {}
+#     for model_name, records in groups.items():
+#         count = len(records)    # 记录这个model有几组数据
+#         # 单独取出每一组数据的第一个元素和第二个元素，也就是ppl和ipTM，然后求平均
+#         ppl_mean = sum(record[0] for record in records) / count
+#         ipTM_mean = sum(record[1] for record in records) / count
 
-        # print(model_name, count, ppl_mean, ipTM_mean)
-        # 准备json格式输出
-        result[model_name] = {
-            "count": count,
-            "mean_ppl": ppl_mean,
-            "mean_iptm": ipTM_mean
-        }
+#         # print(model_name, count, ppl_mean, ipTM_mean)
+#         # 准备json格式输出
+#         result[model_name] = {
+#             "count": count,
+#             "mean_ppl": ppl_mean,
+#             "mean_iptm": ipTM_mean
+#         }
 
-    # data = json.dumps(result)
-    return result, skips
+#     # data = json.dumps(result)
+#     return result, skips
 
 
 def main():
@@ -116,11 +119,8 @@ def main():
 
     result, skips = analyze_csv(input_path=args.input_path, ppl_threshold=args.ppl_threshold, ipTM_threshold_low=args.iptm_threshold_low, ipTM_threshold_high=args.iptm_threshold_high)
 
-    with open("data/result.json", "w") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
-
-    with open("data/records.json", "w") as f:
-        json.dump(skips, f, ensure_ascii=False, indent=2)
+    write_json(result, "data/result.json")
+    write_json(skips, "data/records.json")
 
 
 if __name__ == "__main__":
