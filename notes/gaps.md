@@ -89,3 +89,9 @@ set() # 空集合
 - imput_path.write_text()会创建文件
 - 注意测试文件命名需要按照这个标准`test_*.py或*_test.py`,测试函数命名需要按照这个标准`test_*`。这样pytest才会发现这些测试
 
+
+## day06
+- return会直接返回，continue进入下一次循环
+- 为什么创建 CsvRecord 时要传入转换后的变量：因为类型不一致，传入会报错
+- not A and B 与 not (A and B) 有什么区别：注意运算符优先级
+

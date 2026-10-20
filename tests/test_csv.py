@@ -1,6 +1,7 @@
 import pytest
 
 from practice.analyze_csv import analyze_csv
+from app.analysis.validation import parse_row
 
 def test_analyze_csv_normal(tmp_path):
     # 1.准备测试数据
@@ -103,4 +104,15 @@ def test_analyze_csv_iptm_upper_bound(tmp_path):
 
     for record in skips.values():
         assert record["reason"]
-    
+
+
+def test_parse_row_valid():
+    record, reason = parse_row([" modelA ", "8", "0.7"], 3)
+
+    assert record is not None
+    assert reason == ""
+    assert record.model_name == "modelA"
+    assert isinstance(record.ppl, float)
+    assert isinstance(record.iptm, float)
+    assert record.ppl == pytest.approx(8.0)
+    assert record.iptm == pytest.approx(0.7)

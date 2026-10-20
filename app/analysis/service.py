@@ -49,7 +49,7 @@ def analyze_csv(
             skips["row" + str(rows)] = {"reason": reason}
             continue
 
-        if not (result.ppl <= ppl_threshold and result.ppl > 0) and (result.iptm >= ipTM_threshold_low and result.iptm <= ipTM_threshold_high):
+        if not ((result.ppl <= ppl_threshold and result.ppl > 0) and (result.iptm >= ipTM_threshold_low and result.iptm <= ipTM_threshold_high)):
             skips["row" + str(rows)] = {"reason":"跳过，不满足筛选条件或PPL非正"}
             continue
        
