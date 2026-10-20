@@ -17,5 +17,5 @@ def parse_row(
     except ValueError:
         return None, "跳过，字段为空或格式不符"
 
-    result = CsvRecord(row[0], row[1], row[2])
+    result = CsvRecord(model_name, ppl, ipTM)
     return result, ""
