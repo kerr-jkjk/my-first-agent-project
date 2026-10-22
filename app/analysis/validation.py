@@ -11,11 +11,23 @@ def parse_row(
     if not model_name:
         return None, "跳过，模型名为空"
 
+    ppl_str = row[1].strip()
+    ipTM_str = row[2].strip()
+    if not ppl_str:
+        return None, "跳过，ppl为空"
+    if not ipTM_str:
+        return None, "跳过，ipTM为空"
+    
+
     try:
-        ppl = float(row[1])
-        ipTM = float(row[2])
+        ppl = float(ppl_str)
     except ValueError:
-        return None, "跳过，字段为空或格式不符"
+        return None, "跳过，ppl不是合法数字"
+
+    try:
+        ipTM = float(ipTM_str)
+    except ValueError:
+        return None, "跳过，ipTM不是合法数字"
 
     result = CsvRecord(model_name, ppl, ipTM)
     return result, ""

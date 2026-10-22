@@ -7,7 +7,7 @@ def read_csv_rows(
 ) -> tuple[list[str], list[list[str]]]:
     with open(input_path, mode="r", newline='', encoding="utf-8") as infile:
         reader = csv.reader(infile)
-        header = next(reader, None)
+        header = next(reader, [])
 
         data = [row for row in reader]
 

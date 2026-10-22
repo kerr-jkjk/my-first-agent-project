@@ -67,6 +67,7 @@ def test_analyze_csv_invalid_rows(tmp_path):
     assert result["modelB"]["mean_iptm"] == pytest.approx(0.9)
 
     assert set(skips) == {"row3","row4","row5"}
+    assert skips["row3"]["reason"] == "跳过，ppl为空"
 
     for record in skips.values():
         assert record["reason"]
@@ -116,3 +117,27 @@ def test_parse_row_valid():
     assert isinstance(record.iptm, float)
     assert record.ppl == pytest.approx(8.0)
     assert record.iptm == pytest.approx(0.7)
+
+def test_analyze_csv_missing_file(tmp_path):
+    input_path = tmp_path / "missing.csv"
+
+    with pytest.raises(FileNotFoundError):
+        analyze_csv(input_path)
+
+def test_analyze_csv_bad_number(tmp_path):
+    # 1.准备输入数据
+    input_path = tmp_path / "bad.csv"
+
+    input_path.write_text(
+        "model_name,ppl,iptm\n"
+        "modelA,abc,0.7\n"
+        "modelB,6,0.8\n",
+        encoding="utf-8",
+    )
+    
+    result, skips = analyze_csv(input_path)
+    assert set(result) == {"modelB"}
+    assert result["modelB"]["count"] == 1
+    assert set(skips) == {"row2"}
+
+    assert skips["row2"]["reason"] == "跳过，ppl不是合法数字"
