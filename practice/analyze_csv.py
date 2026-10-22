@@ -5,6 +5,7 @@
 import  csv
 import json
 import argparse
+import logging
 
 from app.analysis.service import analyze_csv
 from app.analysis.io import write_json
@@ -84,7 +85,12 @@ from app.analysis.io import write_json
 
 
 def main():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(levelname)s %(name)s:%(lineno)d %(message)s",
+    )
 
+    # 下面继续保留原来的 argparse 等代码
     parser = argparse.ArgumentParser(description="筛选CSV数据并按模型统计均值")
 
     parser.add_argument(
