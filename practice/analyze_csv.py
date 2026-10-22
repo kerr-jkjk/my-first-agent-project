@@ -6,9 +6,14 @@ import  csv
 import json
 import argparse
 import logging
+import os
 
 from app.analysis.service import analyze_csv
 from app.analysis.io import write_json
+
+from dotenv import load_dotenv
+
+from app.config import CSV_INPUT_PATH, CSV_PPL_THRESHOLD
 
 
 
@@ -96,14 +101,14 @@ def main():
     parser.add_argument(
         "--input-path",
         type=str,
-        default="data/sample.csv",
+        default=CSV_INPUT_PATH,
         help="输入文件路径"
     )
 
     parser.add_argument(
         "--ppl-threshold",
         type=float,
-        default=10.0,
+        default=CSV_PPL_THRESHOLD,
         help="允许的最大PPL，默认10.0",
     )
 
