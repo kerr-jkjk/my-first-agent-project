@@ -92,7 +92,7 @@ from app.config import CSV_INPUT_PATH, CSV_PPL_THRESHOLD
 def main():
     logging.basicConfig(
         level=logging.INFO,
-        format="%(levelname)s %(name)s:%(lineno)d %(message)s",
+        format="%(asctime)s %(levelname)s %(name)s:%(lineno)d %(message)s",
     )
 
     # 下面继续保留原来的 argparse 等代码

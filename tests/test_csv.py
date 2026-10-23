@@ -1,4 +1,5 @@
 import pytest
+import logging
 
 from practice.analyze_csv import analyze_csv
 from app.analysis.validation import parse_row
@@ -118,11 +119,35 @@ def test_parse_row_valid():
     assert record.ppl == pytest.approx(8.0)
     assert record.iptm == pytest.approx(0.7)
 
-def test_analyze_csv_missing_file(tmp_path):
+def test_analyze_csv_missing_file(tmp_path, caplog):
+    caplog.set_level(logging.INFO, logger="app.analysis.service")
     input_path = tmp_path / "missing.csv"
 
     with pytest.raises(FileNotFoundError):
         analyze_csv(input_path)
+
+    assert "event=start" in caplog.text
+    assert "error_type=file_not_found" in caplog.text
+    assert "event=end" in caplog.text
+    assert "status=failed" in caplog.text
+
+def test_analyze_csv_empty_result(tmp_path, caplog):
+    caplog.set_level(logging.INFO, logger="app.analysis.service")
+    input_path = tmp_path / "empty.csv"
+    input_path.write_text(
+        "model_name,ppl,iptm\n"
+        "modelA,8,0.7\n",
+        encoding="utf-8",
+    )
+    result, skips = analyze_csv(input_path, ppl_threshold=0)
+
+    assert "event=start" in caplog.text
+    assert "event=end" in caplog.text
+    assert "status=ok" in caplog.text
+    assert result == {}
+    assert set(skips) == {"row2"}
+
+
 
 def test_analyze_csv_bad_number(tmp_path):
     # 1.准备输入数据
