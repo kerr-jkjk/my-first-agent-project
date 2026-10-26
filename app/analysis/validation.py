@@ -1,5 +1,6 @@
 from app.analysis.models import CsvRecord, Summary
 
+# 分析当前行数据，如果合法则返回
 def parse_row(
     row: list[str],
     expected_columns: int,
@@ -28,6 +29,9 @@ def parse_row(
         ipTM = float(ipTM_str)
     except ValueError:
         return None, "跳过，ipTM不是合法数字"
+
+    if ipTM < 0 or ipTM > 1:
+        return None, "跳过，ipTM超出范围"
 
     result = CsvRecord(model_name, ppl, ipTM)
     return result, ""

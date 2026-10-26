@@ -166,3 +166,21 @@ def test_analyze_csv_bad_number(tmp_path):
     assert set(skips) == {"row2"}
 
     assert skips["row2"]["reason"] == "跳过，ppl不是合法数字"
+
+def test_analyze_csv_ipTM_illegal(tmp_path):
+
+    input_path = tmp_path / "illegal.csv"
+
+    input_path.write_text(
+        "model_name,ppl,iptm\n"
+        "modelA,1,0.7\n"
+        "modelA,2,0\n"
+        "modelB,3,1\n"
+        "modelB,4,-0.1\n"
+        "modelC,5,1.2\n",
+        encoding="utf-8",
+    )
+
+    result, skips = analyze_csv(input_path)
+    assert skips["row5"]["reason"] == "跳过，ipTM超出范围"
+    assert skips["row6"]["reason"] == "跳过，ipTM超出范围"
