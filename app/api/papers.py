@@ -34,10 +34,11 @@ async def search_papers_api(request: PaperSearchRequest):
                 "title": title
             }
         )
-        return {
-            "query": request.query,
-            "papers": papers
-        }
+        
+    return {
+        "query": request.query,
+        "papers": papers
+    }
     
 @router.get("/papers/{paper_id}")
 async def get_paper(paper_id: int):

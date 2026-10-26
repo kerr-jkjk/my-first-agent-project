@@ -288,3 +288,182 @@ except TimeoutError:
 - 异步操作可以直接 `await`，不一定先调用 `create_task()`。
 - 异步顺序等待仍然是顺序执行。
 - 超时触发取消，取消传播出来后由超时上下文转换为超时异常。
+
+
+
+## 2026-10-26：HTTP、FastAPI 路由与请求校验
+
+### 1. 今天完成的内容
+
+- 将论文接口整理到 `app/api/papers.py`。
+- 在主应用中注册论文路由，清除重复接口。
+- 使用 Pydantic 模型约定请求和响应结构。
+- 通过接口调用已有的异步模拟搜索服务。
+- 修复了返回语句位于循环内部的问题。
+
+### 2. HTTP 请求中的几个概念
+
+| 概念 | 本项目中的例子 | 含义 |
+|---|---|---|
+| 请求方法 | GET、POST | 表达请求操作 |
+| 路径 | `/papers/search` | 确定访问哪个接口 |
+| 查询参数 | `/papers?keyword=pepmlm&limit=1` | 放在 URL 中的参数 |
+| 请求体 | `{"query":"pepmlm","limit":1}` | 客户端发送的数据 |
+| 响应体 | 包含 `query`、`papers` 的 JSON | 服务端返回的数据 |
+| 状态码 | 200、422 | 表示请求处理结果 |
+
+本次主要关注：
+
+- `200`：请求成功。
+- `422`：请求参数或请求体没有通过校验。
+- `500`：服务端执行出错，需要查看日志。
+
+### 3. 请求模型、响应模型和路由注册
+
+请求模型规定客户端需要提供什么：
+
+```python
+class PaperSearchRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=200)
+    limit: int = Field(default=5, ge=1, le=20)
+```
+
+- `query` 是必填字符串，长度为 1～200。
+- `limit` 未提供时使用 5，允许范围是 1～20。
+- `ge` 表示大于等于，`le` 表示小于等于。
+- `min_length=1` 不接受空字符串，但仍允许只有空格的字符串。
+
+接口通过以下声明使用输入和输出约定：
+
+```python
+@router.post(
+    "/papers/search",
+    response_model=PaperSearchResponse,
+)
+async def search_papers_api(request: PaperSearchRequest):
+    ...
+```
+
+- `request: PaperSearchRequest`：解析并校验请求体。
+- `response_model=PaperSearchResponse`：校验和整理返回结构。
+
+路由模块负责定义接口，主应用负责注册：
+
+```python
+from app.api.papers import router as papers_router
+
+app = FastAPI()
+app.include_router(papers_router)
+```
+
+只定义路由但没有注册，主应用就无法通过它处理请求。
+
+### 4. 一次正常 POST 的执行过程
+
+以请求体为例：
+
+```json
+{"query": "pepmlm", "limit": 1}
+```
+
+执行过程：
+
+1. 客户端发送 `POST /papers/search`。
+2. FastAPI 根据请求方法和路径找到接口。
+3. 根据 `PaperSearchRequest` 校验请求体，创建请求对象。
+4. 校验通过后，执行接口函数。
+5. 接口通过 `await search_papers(request.query)` 等待搜索结果。
+6. 将服务返回的 `items` 转换为接口需要的 `papers`，按 `limit` 截取数量。
+7. 根据响应模型校验输出，再返回 JSON 响应。
+
+当前搜索服务使用模拟数据，没有真正检索外部论文。
+
+`limit` 表示最多返回多少条，不保证一定返回这么多条。模拟服务只有两条论文，因此 `limit=10` 时返回两条也是正常的。
+
+### 5. 缺少 query 时在哪里失败
+
+请求体：
+
+```json
+{"limit": 1}
+```
+
+`query` 是必填字段，因此在请求校验阶段失败。
+
+FastAPI 返回 `422`，错误位置指向 `body → query`。此时接口函数和搜索服务都不会执行。
+
+需要记住：
+
+> 先匹配接口，再校验输入；校验通过，才执行接口函数。
+
+Swagger 页面中的 `Server response` 才是本次实际响应；下方的响应示例只是文档展示。
+
+### 6. 本次修复：return 放在循环内部
+
+原来的逻辑：
+
+```python
+for ...:
+    papers.append(...)
+    return ...
+```
+
+添加第一条论文后就会结束整个函数，所以即使请求两条，也只返回一条。只测试 `limit=1` 无法发现这个问题。
+
+修复后的逻辑：
+
+```python
+for index, title in enumerate(
+    result.items[:request.limit],
+    start=1,
+):
+    papers.append(
+        {
+            "id": index,
+            "title": title,
+        }
+    )
+
+return {
+    "query": request.query,
+    "papers": papers,
+}
+```
+
+循环负责收集论文，循环结束后统一返回。这里的 `id` 是演示序号，不是数据库中的永久 ID。
+
+### 7. 验证记录
+
+按实际结果填写：
+
+| 验证场景 | 预期 | 实际结果 |
+|---|---|---|
+| GET `/health` | 200，返回正常状态 | 待填写 |
+| GET `/papers?keyword=pepmlm&limit=1` | 200，参数正确回显 | 正确 |
+| POST，`query=pepmlm`、`limit=2` | 200，返回两条模拟论文 | 正确 |
+| POST，缺少 `query` | 422，错误指向 `query` | 正确 |
+| POST，`limit=0` | 422，错误指向 `limit` | 正确 |
+
+分别通过 `/docs` 和 curl 验证。curl 示例：
+
+```bash
+curl -i -X POST "http://127.0.0.1:8000/papers/search" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"pepmlm","limit":2}'
+```
+
+```bash
+curl -i -X POST "http://127.0.0.1:8000/papers/search" \
+  -H "Content-Type: application/json" \
+  -d '{"limit":1}'
+```
+
+原有功能回归：
+
+```bash
+python -m pytest tests/ -v
+```
+
+- 实际测试数量与结果：正确。
+- 数量上限改为 10 时，10 通过、11 返回 422 的实际结果：正确。
+- 最终模型上限：20。
