@@ -1,8 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+# 声明输入、输出格式及输入约束
 
 class PaperSearchRequest(BaseModel):
-    query: str
-    limit: int = 5
+    query: str = Field(min_length=1, max_length=200)
+    limit: int = Field(default=5, ge=1, le=20)
 
 class PaperItem(BaseModel):
     id: int

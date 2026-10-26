@@ -3,6 +3,8 @@ import logging
 
 from app.models.search_result import SearchResult
 
+# 继续提供已有的模拟搜索功能
+
 logger = logging.getLogger(__name__)
 
 async def search_papers(keyword: str,) -> SearchResult:
