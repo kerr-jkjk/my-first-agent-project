@@ -184,3 +184,12 @@ def test_analyze_csv_ipTM_illegal(tmp_path):
     result, skips = analyze_csv(input_path)
     assert skips["row5"]["reason"] == "跳过，ipTM超出范围"
     assert skips["row6"]["reason"] == "跳过，ipTM超出范围"
+
+    row1 = ["modelA", "2", "0"]
+    row2 = ["modelB", "3", "1"]
+    result1, reason1 = parse_row(row1, 3)
+    result2, reason2 = parse_row(row2, 3)
+    assert result1 != None
+    assert reason1 == ""
+    assert result2 != None
+    assert reason2 == ""
