@@ -27,3 +27,6 @@ logs/
 
 # 私有数据
 data/private/
+
+# 本地联系数据库及附属文件
+data/papers.db*
