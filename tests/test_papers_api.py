@@ -60,7 +60,7 @@ def test_papers_crud(client):
     # 删除
     response = client.delete(f"/papers/{paper_id}")
     assert response.status_code == 200
-    assert response.json()["delete"] is True
+    assert response.json()["deleted"] is True
     assert db.get_paper(paper_id) is None
 
     # 删除后再次查询
