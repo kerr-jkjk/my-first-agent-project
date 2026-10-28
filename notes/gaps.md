@@ -596,3 +596,162 @@ return left + 1
 本次收获：区分“下标”和“数量”，明确每个指针的含义，再判断如何移动和写入。
 
 原定的 26 已完成代码实现，无需顺延；27 的边界处理在后续算法复习时闭卷巩固。
+
+
+
+
+## 2026-10-28：接通 CRUD 与错误处理
+
+### 1. 本次完成内容
+
+将 HTTP 接口连接到 SQLite，实现论文新增、按 ID 查询、更新标题和删除。
+
+| 操作 | 接口 | 成功状态 |
+|---|---|---|
+| 新增 | POST `/papers` | 201 |
+| 查询 | GET `/papers/{paper_id}` | 200 |
+| 更新标题 | PATCH `/papers/{paper_id}` | 200 |
+| 删除 | DELETE `/papers/{paper_id}` | 200 |
+
+### 2. 请求处理流程与自动校验
+
+新增请求的执行顺序：
+
+1. 客户端通过 `client.post(..., json=...)` 发送请求。
+2. FastAPI 根据请求方法和路径找到接口。
+3. 根据 `request: PaperCreate` 中声明的模型校验输入。
+4. 校验通过后才执行接口函数。
+5. `db.add_paper()` 调用 `conn.execute()` 执行 SQL。
+6. `conn.commit()` 提交修改。
+7. 根据新增 ID 查询完整记录，转换成响应字典并返回。
+
+输入校验由 FastAPI 配合 Pydantic 自动执行，不需要在接口里逐项手写判断。
+
+`Field()` 声明必填、长度等规则；`str_strip_whitespace=True` 去掉字符串两侧空白。
+
+新增后重新查询，主要是为了取得完整记录，包括数据库生成的 `id` 和默认的 `created_at`。
+
+### 3. 错误状态与分层职责
+
+| 状态码 | 原因 | 发现位置 |
+|---|---|---|
+| 422 | 缺少字段、字段为空等 | 执行接口函数前的请求校验 |
+| 404 | 指定论文不存在 | 接口检查数据库返回的 `None` 或 `False` |
+| 409 | URL 重复 | 数据库拒绝写入，接口捕获异常后转换 |
+
+数据库函数负责 SQL 和操作结果，不负责 HTTP 状态码。
+
+例如，`delete_paper()` 返回 `False`，表示没有删除到匹配记录。接口收到后，按 API 约定抛出 404。
+
+### 4. try、except、raise 与异常转换
+
+```python
+try:
+    paper_id = db.add_paper(request.title, request.url)
+except sqlite3.IntegrityError as exc:
+    if exc.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_UNIQUE:
+        raise HTTPException(
+            status_code=409,
+            detail="论文 URL 已存在",
+        ) from exc
+    raise
+```
+
+- `try`：执行可能失败的新增操作。
+- `except sqlite3.IntegrityError`：捕获违反数据库完整性约束的异常。
+- `as exc`：将本次异常对象保存为变量。
+- `sqlite_errorcode`：进一步判断具体错误类型。
+- `SQLITE_CONSTRAINT_UNIQUE`：表示违反唯一约束。
+- `raise HTTPException(...)`：将已识别的数据库错误转换成 HTTP 错误。
+- `from exc`：保留新异常与原异常的因果关系，方便排查。
+- 单独的 `raise`：重新抛出当前异常，避免将其他约束错误误报为 URL 重复。
+
+新增成功时跳过 `except`，继续查询并返回记录；抛出异常后不会继续执行正常返回路径。
+
+### 5. 为什么使用数据库唯一约束
+
+本项目约定：相同 URL 只保存一条记录。
+
+只在 Python 中“先查询，不存在再新增”不能保证并发情况下不重复：
+
+1. 请求 A 查询，URL 不存在。
+2. 请求 B 查询，同一个 URL 也不存在。
+3. A 新增。
+4. B 根据之前的查询结果，也尝试新增。
+
+唯一索引让数据库在写入时保证规则成立。第二次重复写入会被拒绝，再由接口返回 409。
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS idx_papers_url_unique
+ON papers(url);
+```
+
+已有表不会因为修改 Python 中的建表语句就自动改变结构。添加索引可以给已有表增加唯一性规则；旧数据存在重复 URL 时，需要先处理重复记录。
+
+### 6. def、async def 与应用入口
+
+当前 `sqlite3` 操作是同步的，因此数据库接口使用普通 `def`，由 FastAPI 安排到线程池执行。
+
+搜索服务是协程函数，接口通过 `await` 调用，因此继续使用 `async def`。
+
+仅把函数改成 `async def`，不会让同步数据库操作自动变成异步。普通辅助函数也不会因为使用 `def` 就自动进入线程池。
+
+`app/api_server.py` 负责创建和组装应用：
+
+```python
+app = FastAPI()
+app.include_router(papers_router)
+```
+
+测试通过下面的导入取得已注册路由的应用：
+
+```python
+from app.api_server import app
+```
+
+导入应用本身不会启动监听端口。Uvicorn 负责启动服务：
+
+```bash
+python -m uvicorn app.api_server:app --reload
+```
+
+### 7. 测试隔离与实际结果
+
+```python
+monkeypatch.setattr(db, "DB_PATH", tmp_path / "papers.db")
+```
+
+- `tmp_path` 是 pytest 提供的临时目录。
+- `tmp_path / "papers.db"` 拼接出临时数据库路径。
+- `monkeypatch` 临时替换 `db.DB_PATH`，测试结束后自动恢复。
+- SQL 在真实的临时 SQLite 数据库中执行。
+- 测试不会修改项目中的 `data/papers.db`。
+- `TestClient` 直接调用应用，不需要启动 Uvicorn。
+
+实际运行：
+
+```bash
+python -m pytest tests/test_papers_api.py -v
+```
+
+结果：**4 passed，1 warning**。
+
+通过的测试：
+
+- 完整 CRUD 流程。
+- 不存在的记录返回 404。
+- 重复 URL 返回 409，且不产生重复记录。
+- 非法字段返回 422，且不写入数据库。
+
+警告内容：依赖库提示当前基于 `httpx` 的测试客户端用法已弃用。本次未因警告修改依赖，测试正常通过。
+
+### 8. 本次理解上的卡点
+
+本次在指导下补清楚了：
+
+- 输入校验由请求模型自动触发。
+- 查询后再新增存在并发竞争，唯一约束负责最终保证。
+- 数据库布尔返回值与 HTTP 状态码属于不同层。
+- `monkeypatch` 替换配置位置，不是替换真实 SQL 操作。
+
+后续在项目中继续巩固这些概念，不将“测试通过”直接等同于“已经能独立实现全部功能”。

@@ -20,6 +20,10 @@ def init_db() -> None:
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        conn.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_papers_url_unique
+            ON papers(url)
+        """)
         conn.commit()
     finally:
         conn.close()
@@ -88,6 +92,19 @@ def update_paper_title(paper_id: int, title: str) -> bool:
             SET title = ?
             WHERE id = ?
         """, (title, paper_id))
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
+def delete_paper(paper_id: int):
+    conn = get_connection()
+
+    try:
+        cursor = conn.execute("""
+            DELETE FROM papers WHERE id = ?
+        """, (paper_id, ))
         conn.commit()
         return cursor.rowcount > 0
     finally:
