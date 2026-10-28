@@ -85,7 +85,7 @@ async def search_papers_api(request: PaperSearchRequest):
     }
     
 @router.get("/papers/{paper_id}")
-async def get_paper(paper_id: int):
+def get_paper(paper_id: int):
     row = db.get_paper(paper_id)
 
     if row is None:
