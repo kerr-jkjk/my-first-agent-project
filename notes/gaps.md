@@ -755,3 +755,192 @@ python -m pytest tests/test_papers_api.py -v
 - `monkeypatch` 替换配置位置，不是替换真实 SQL 操作。
 
 后续在项目中继续巩固这些概念，不将“测试通过”直接等同于“已经能独立实现全部功能”。
+
+
+
+## 2026-10-29：分页、过滤与聚合
+
+### 1. 今天的学习内容
+
+将 `GET /papers` 从参数回显接口改为真实数据库查询，支持：
+
+- `keyword`：标题过滤。
+- `limit`：限制返回数量。
+- `offset`：跳过前面的匹配记录。
+- 按 ID 升序排列。
+
+另外使用独立的内存数据库练习 `GROUP BY` 和 `JOIN`。
+
+### 2. 查询参数与执行顺序
+
+| 参数 | 默认值 | 规则 |
+|---|---|---|
+| keyword | None | 不传或只有空白时不过滤 |
+| limit | 10 | 1～100 |
+| offset | 0 | 大于等于 0 |
+
+例如：
+
+```text
+GET /papers?keyword=Agent&limit=2&offset=1
+```
+
+表示：
+
+1. 筛选标题匹配 Agent 的论文。
+2. 按 ID 升序排列。
+3. 跳过第一条匹配记录。
+4. 最多返回两条。
+
+`offset` 是跳过的记录数，不是页码。
+
+### 3. SQL 分页与标题过滤
+
+```sql
+SELECT id, title, url, created_at
+FROM papers
+WHERE title LIKE ?
+ORDER BY id ASC
+LIMIT ? OFFSET ?;
+```
+
+对应参数：
+
+```python
+(f"%{keyword}%", limit, offset)
+```
+
+- `WHERE`：筛选记录。
+- `ORDER BY id ASC`：明确排序，方便稳定分页。
+- `LIMIT`：最多返回多少条。
+- `OFFSET`：跳过多少条匹配记录。
+
+这里的 f-string 构造的是参数值，SQL 结构仍然固定，数据仍通过占位符绑定。
+
+`LIKE` 中 `%` 表示任意长度的字符，`_` 表示一个字符。因此当前标题过滤采用 LIKE 模式匹配。
+
+关键词处理：
+
+```python
+keyword = (keyword or "").strip()
+```
+
+将 `None` 和只有空白的输入统一处理为空字符串，表示不进行标题过滤。
+
+### 4. HTTP 校验与返回结构
+
+接口使用 `Query()` 校验 URL 查询参数：
+
+```python
+limit: int = Query(default=10, ge=1, le=100)
+offset: int = Query(default=0, ge=0)
+```
+
+非法参数在执行接口函数前被拒绝，返回 422。
+
+响应模型：
+
+```python
+response_model=list[PaperResponse]
+```
+
+表示返回论文对象组成的列表。
+
+没有匹配记录或 offset 超出结果范围时，正常返回：
+
+```json
+[]
+```
+
+状态码是 200，不是 404。查询单个不存在的 ID，才按现有约定返回 404。
+
+测试客户端中的：
+
+```python
+client.get("/papers", params={"limit": 2, "offset": 0})
+```
+
+相当于请求：
+
+```text
+/papers?limit=2&offset=0
+```
+
+`params` 用于查询参数，`json` 用于 JSON 请求体。
+
+### 5. GROUP BY：分组统计
+
+```sql
+SELECT category, COUNT(*) AS note_count
+FROM demo_notes
+GROUP BY category
+ORDER BY category;
+```
+
+含义：按笔记分类分组，统计每组的笔记数量。
+
+示例数据的预期结果：
+
+| category | note_count |
+|---|---:|
+| agent | 2 |
+| research | 2 |
+
+这里统计的是笔记数量，不是不同论文的数量。
+
+### 6. JOIN：关联两张表
+
+```sql
+SELECT p.id, p.title, n.category
+FROM demo_papers AS p
+JOIN demo_notes AS n ON n.paper_id = p.id
+ORDER BY p.id, n.id;
+```
+
+- `p`、`n` 是表的别名。
+- `ON n.paper_id = p.id` 指定关联条件。
+- 查询为每条笔记补上所属论文的标题。
+
+示例中有三篇论文、四条笔记，因此返回四行。PepMLM 有两条笔记，会出现两次，这不代表论文表保存了重复记录。
+
+SQL 练习运行命令：
+
+```bash
+sqlite3 -header -column :memory: < practice/sql.sql
+```
+
+`:memory:` 使用内存数据库，退出后消失，不修改项目的 `data/papers.db`。
+
+### 7. 验证记录
+
+本次需要验证的行为：
+
+- 分页结果顺序正确。
+- 数据不变时，重复请求返回相同结果。
+- 先过滤，再分页。
+- 空数据库、无匹配结果和超出范围的 offset 返回 200、`[]`。
+- 超大 limit、limit 为 0、负数 offset 返回 422。
+- 原有 CRUD 和重复 URL 测试仍然通过。
+
+运行命令：
+
+```bash
+python -m pytest tests/test_papers_api.py -v
+python -m pytest tests/ -v
+```
+
+实际结果：
+
+- API 测试数量与结果：通过
+- 全部测试数量与结果：通过。
+- GROUP BY、JOIN 的实际输出是否符合预期：通过。
+
+### 8. 算法练习：LeetCode 283「移动零」
+
+题目要求：原地修改数组，将零移到末尾，保持非零元素的相对顺序。（明天补）
+
+- 实际用时：待填写。
+- 解题方法与卡点：待填写。
+- 提交结果：待填写。
+- 时间、空间复杂度：待填写。
+- 是否独立完成：按实际情况填写。
