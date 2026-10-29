@@ -23,6 +23,23 @@ def client(tmp_path, monkeypatch):
         # 测试结束后恢复执行，再退出 with 完成清理
         yield test_client
 
+def seed_papers():
+    titles = [
+        "Agent Basics",
+        "Protein Generation",
+        "Agent Tools",
+        "RAG Notes",
+        "Agent Evaluation",
+    ]
+
+    for index, title in enumerate(titles, start=1):
+        db.add_paper(
+            title,
+            f"https://example.com/{index}"
+        )
+
+    return titles
+
 
 def test_papers_crud(client):
     # 这里的 client，就是上面 yield 出来的 test_client
@@ -114,4 +131,90 @@ def test_invalid_paper_fields(client):
         assert response.status_code == 422
 
     assert db.list_papers() == []
+
+
+
+def test_list_papers_pagination(client):
+    titles = seed_papers()
+
+    first = client.get(
+        "/papers",
+        params={"limit": 2, "offset": 0}
+    )
+
+    second = client.get(
+        "/papers",
+        params={"limit":2, "offset": 2}
+    )
+
+    repeated = client.get(
+        "/papers",
+        params={"limit": 2, "offset": 0}
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert repeated.status_code == 200
+
+    assert [p["title"] for p in first.json()] == titles[:2]
+    assert [p["title"] for p in second.json()] == titles[2:4]
+    assert repeated.json() == first.json()
+
+    beyond = client.get(
+        "/papers",
+        params={"limit": 2, "offset": 99},
+    )
+
+    assert beyond.status_code == 200
+    assert beyond.json() == []
+
+def test_list_papers_filter(client):
+    seed_papers()
+
+    response = client.get(
+        "/papers",
+        params={
+            "keyword": "Agent",
+            "limit": 1,
+            "offset": 1
+        },
+    )
+
+    assert response.status_code == 200
+    assert [p["title"] for p in response.json()] == ["Agent Tools"]
+
+    missing = client.get(
+        "/papers",
+        params={"keyword": "NotFound"},
+    )
+
+    assert missing.status_code == 200
+    assert missing.json() == []
+
+
+def test_list_papers_empty(client):
+    response = client.get("/papers")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_list_papers_invalid_params(client):
+    invalid_params = [
+        {"limit": 10000},
+        {"limit": 0},
+        {"limit": -1}
+    ]
+
+    for params in invalid_params:
+        response = client.get("/papers", params=params)
+        assert response.status_code == 422
+
+    allowed = client.get(
+        "/papers",
+        params={"limit": 100, "offset":0},
+    )
+
+    assert allowed.status_code == 200
+
 

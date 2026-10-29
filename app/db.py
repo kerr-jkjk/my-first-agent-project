@@ -42,15 +42,30 @@ def add_paper(title: str, url: str) -> int:
     finally:
         conn.close()
 
-def list_papers() -> list[tuple]:
+def list_papers(
+    limit: int = 10,
+    offset: int = 0,
+    keyword: str | None = None,
+) -> list[tuple]:
     conn = get_connection()
+    keyword = (keyword or "").strip()
 
     try:
-        cursor = conn.execute("""
-            SELECT id, title, url, created_at
-            FROM papers
-            ORDER BY id
-        """)
+        if keyword:
+            cursor = conn.execute("""
+                SELECT id, title, url, created_at
+                FROM papers
+                WHERE title LIKE ?
+                ORDER BY id ASC
+                LIMIT ? OFFSET ?
+            """, (f"%{keyword}%", limit, offset,),)
+        else:
+            cursor = conn.execute("""
+                SELECT id, title, url, created_at
+                FROM papers
+                ORDER BY id ASC
+                LIMIT ? OFFSET ?
+            """, (limit, offset),)
         return cursor.fetchall()
     finally:
         conn.close()

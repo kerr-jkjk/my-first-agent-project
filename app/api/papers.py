@@ -1,6 +1,6 @@
 import sqlite3
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from app.services.paper_service import search_papers
 
 from app import db
@@ -24,15 +24,22 @@ def paper_to_dict(row: tuple) -> dict:
         "created_at": row[3]
     }
 
-@router.get("/papers")
-async def list_papers(
-    keyword: str|None = None,
-    limit: int = 10
+@router.get(
+    "/papers",
+    response_model=list[PaperResponse]
+)
+def list_papers(
+    keyword: str|None = Query(default=None, max_length=200),
+    limit: int = Query(default=10, ge=1, le=100),
+    offset: int = Query(default=0, ge=0)
 ):
-    return {
-        "keyword": keyword,
-        "limit": limit
-    }
+    rows = db.list_papers(
+        limit=limit,
+        offset=offset,
+        keyword=keyword
+    )
+
+    return [paper_to_dict(row) for row in rows]
 
 @router.post(
         "/papers",
