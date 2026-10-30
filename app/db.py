@@ -24,12 +24,17 @@ def init_db() -> None:
             CREATE UNIQUE INDEX IF NOT EXISTS idx_papers_url_unique
             ON papers(url)
         """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_papers_title
+            ON papers(title)
+        """)
         conn.commit()
     finally:
         conn.close()
 
 
 def add_paper(title: str, url: str) -> int:
+    
     conn = get_connection()
 
     try:
@@ -39,6 +44,36 @@ def add_paper(title: str, url: str) -> int:
         )
         conn.commit()
         return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+# 获取数据库连接
+    # 开始事务
+    # 依次新增论文
+    # 全部成功后统一提交
+    # 数据库操作失败则回滚，再抛出异常
+    # 最后关闭连接
+def add_papers_atomic(
+    papers: list[tuple[str, str]]
+):
+    conn = get_connection()
+    try:
+        conn.execute("BEGIN")
+        paper_ids = []
+
+        for title, url in papers:
+            cursor = conn.execute(
+                "INSERT INTO papers (title, url) VALUES (?, ?)",
+                (title, url),
+            )
+            paper_ids.append(cursor.lastrowid)
+
+        conn.commit()
+        return paper_ids
+    except sqlite3.Error:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 

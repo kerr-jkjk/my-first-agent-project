@@ -203,7 +203,7 @@ def test_list_papers_invalid_params(client):
     invalid_params = [
         {"limit": 10000},
         {"limit": 0},
-        {"limit": -1}
+        {"offset": -1}
     ]
 
     for params in invalid_params:
