@@ -40,6 +40,7 @@ def test_create_paper(client):
     assert paper["created_at"]
     assert paper["source"] == "arxiv:123123"
     assert db.get_paper(paper_id)[1] == "PepMLM"
+    
 
 def test_list_papers(client):
     responses = [
@@ -61,4 +62,20 @@ def test_list_papers(client):
     assert results.json()[2]["title"] == "PepMLM3"
     assert results.json()[2]["url"] == "da"
     assert results.json()[2]["source"] == "manual"
-    
+
+    paper_id = results.json()[0]["id"]
+    response = client.get(f"/papers/{paper_id}")
+    assert response.status_code == 200
+    assert response.json()["title"] == "PepMLM"
+    assert response.json()["source"] == "a"
+
+
+def test_illeagel_source(client):
+    responses = [
+        client.post("/papers", json={"title": "PepMLM", "url": "asda", "source": ""}),
+        client.post("/papers", json={"title": "PepMLM2", "url": "ada", "source": "  "}),
+        client.post("/papers", json={"title": "PepMLM3", "url": "da", "source": None}),
+    ]
+
+    for response in responses:
+        assert response.status_code == 422

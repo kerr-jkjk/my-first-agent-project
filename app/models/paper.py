@@ -13,7 +13,6 @@ class PaperItem(BaseModel):
 class PaperSearchResponse(BaseModel):
     query: str
     papers: list[PaperItem]
-    source: str
 
 class PaperCreate(BaseModel):
     # 给 Pydantic 模型设置规则：处理字符串字段时，自动去掉首尾的空白字符。
