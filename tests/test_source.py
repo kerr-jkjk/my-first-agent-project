@@ -79,3 +79,7 @@ def test_illeagel_source(client):
 
     for response in responses:
         assert response.status_code == 422
+
+def tets_papers_search(client):
+    response = client.post("/papers/search")
+    assert response.status_code == 200
