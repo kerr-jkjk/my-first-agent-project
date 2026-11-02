@@ -21,7 +21,8 @@ def paper_to_dict(row: tuple) -> dict:
         "id": row[0],
         "title": row[1],
         "url": row[2],
-        "created_at": row[3]
+        "created_at": row[3],
+        "source": row[4]
     }
 
 @router.get(
@@ -41,6 +42,7 @@ def list_papers(
 
     return [paper_to_dict(row) for row in rows]
 
+# 新增论文
 @router.post(
         "/papers",
         response_model=PaperResponse,
@@ -49,7 +51,7 @@ def list_papers(
 def create_paper(request: PaperCreate):
     try:
         # 尝试新增论文，成功后获得数据库分配的 ID
-        paper_id = db.add_paper(request.title, request.url)
+        paper_id = db.add_paper(request.title, request.url, request.source)
 
     except sqlite3.IntegrityError as exc:
         # 新增过程中出现“违反数据库约束”的异常时，进入这里

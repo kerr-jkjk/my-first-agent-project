@@ -17,7 +17,8 @@ def init_db() -> None:
                 id INTEGER PRIMARY KEY,
                 title TEXT NOT NULL,
                 url TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                source TEXT NOT NULL DEFAULT 'manual'
             )
         """)
         conn.execute("""
@@ -33,14 +34,14 @@ def init_db() -> None:
         conn.close()
 
 
-def add_paper(title: str, url: str) -> int:
+def add_paper(title: str, url: str, source: str = "manual") -> int:
     
     conn = get_connection()
 
     try:
         cursor = conn.execute(
-            "INSERT INTO papers (title, url) VALUES (?, ?)",
-            (title, url),
+            "INSERT INTO papers (title, url, source) VALUES (?, ?, ?)",
+            (title, url, source),
         )
         conn.commit()
         return cursor.lastrowid
@@ -88,7 +89,7 @@ def list_papers(
     try:
         if keyword:
             cursor = conn.execute("""
-                SELECT id, title, url, created_at
+                SELECT id, title, url, created_at, source
                 FROM papers
                 WHERE title LIKE ?
                 ORDER BY id ASC
@@ -96,7 +97,7 @@ def list_papers(
             """, (f"%{keyword}%", limit, offset,),)
         else:
             cursor = conn.execute("""
-                SELECT id, title, url, created_at
+                SELECT id, title, url, created_at, source
                 FROM papers
                 ORDER BY id ASC
                 LIMIT ? OFFSET ?
@@ -110,7 +111,7 @@ def get_paper(paper_id: int) -> tuple | None:
 
     try:
         cursor = conn.execute("""
-            SELECT id, title, url, created_at
+            SELECT id, title, url, created_at, source
             FROM papers
             WHERE id = ?
         """, (paper_id,)
@@ -124,7 +125,7 @@ def find_papers_by_title(title: str) -> list[tuple]:
 
     try:
         cursor = conn.execute("""
-            SELECT id, title, url, created_at
+            SELECT id, title, url, created_at, source
             FROM papers
             WHERE title = ?
             ORDER BY id

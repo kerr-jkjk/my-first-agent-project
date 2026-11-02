@@ -13,12 +13,15 @@ class PaperItem(BaseModel):
 class PaperSearchResponse(BaseModel):
     query: str
     papers: list[PaperItem]
+    source: str
 
 class PaperCreate(BaseModel):
+    # 给 Pydantic 模型设置规则：处理字符串字段时，自动去掉首尾的空白字符。
     model_config = ConfigDict(str_strip_whitespace=True)
 
     title: str = Field(min_length=1, max_length=200)
     url: str = Field(min_length=1, max_length=2048)
+    source: str = Field(min_length=1, max_length=50, default="manual")
 
 class PaperUpdate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -30,4 +33,5 @@ class PaperResponse(BaseModel):
     title: str
     url: str
     created_at: str
+    source: str
     
