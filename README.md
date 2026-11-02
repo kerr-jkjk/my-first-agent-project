@@ -83,6 +83,14 @@ python -m practice.analyze_csv --input-path data/sample.csv --ppl-threshold 8 --
 
 每次运行会覆盖这两个输出文件。
 
+
+## 数据库初始化
+
+```bash
+python -c "from app.db import init_db; init_db()"
+```
+
+
 ### 命令行交互示例
 
 ```bash
