@@ -70,6 +70,16 @@ def test_list_papers(client):
     assert response.json()["source"] == "a"
 
 
+    response = client.patch(
+        f"/papers/{paper_id}",
+        json={"title": "Updated Title"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["title"] == "Updated Title"
+    assert response.json()["source"] == "a"
+
+
 def test_illeagel_source(client):
     responses = [
         client.post("/papers", json={"title": "PepMLM", "url": "asda", "source": ""}),
@@ -80,6 +90,15 @@ def test_illeagel_source(client):
     for response in responses:
         assert response.status_code == 422
 
-def tets_papers_search(client):
-    response = client.post("/papers/search")
+def test_papers_search(client):
+    response = client.post(
+        "/papers/search",
+        json={
+            "query": "pepmlm",
+            "limit": 1,
+        },
+    )
+
     assert response.status_code == 200
+    assert response.json()["query"] == "pepmlm"
+    assert len(response.json()["papers"]) == 1
