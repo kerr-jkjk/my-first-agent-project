@@ -143,3 +143,61 @@ python -m pytest tests/ -v
 | scripts/ | 示例脚本 |
 | notes/ | 环境、卡点和学习记录 |
 | weekly/ | 每周验收记录 |
+
+
+
+## Docker 运行
+
+需要先安装并启动 Docker Desktop。
+
+以下首次运行命令在项目根目录执行：
+
+```bash
+# 根据 Dockerfile 构建镜像
+docker build -t my-first-agent-api:w04 .
+
+# 创建并启动名为 agent-api 的容器
+# 将 Mac 本机的 8003 端口映射到容器的 8000 端口
+docker run -d \
+  --name agent-api \
+  -p 127.0.0.1:8003:8000 \
+  my-first-agent-api:w04
+
+# 查看启动日志
+docker logs agent-api
+
+# 验证健康检查，预期返回 200 和 {"status":"ok"}
+curl -i http://127.0.0.1:8003/health
+
+# 在运行中的容器内初始化 SQLite 数据库
+docker exec agent-api python -c "from app.db import init_db; init_db()"
+
+# 查询论文列表，新数据库预期返回 200 和 []
+curl -i http://127.0.0.1:8003/papers
+```
+
+接口文档：http://127.0.0.1:8003/docs
+
+停止容器：
+
+```bash
+docker stop agent-api
+```
+
+再次启动已有容器：
+
+```bash
+docker start agent-api
+```
+
+`docker run` 创建新容器，`docker start` 启动已有容器。已有同名容器时，不要重复执行创建命令。
+
+### 运行说明
+
+- 容器内由 Uvicorn 在 `0.0.0.0:8000` 监听请求。
+- Mac 通过 `127.0.0.1:8003` 访问容器中的服务。
+- `EXPOSE 8000` 声明应用使用的端口，实际端口映射由 `docker run -p` 设置。
+- 本次通过 `COPY` 将代码复制进镜像，没有绑定挂载本地源码目录。
+- 修改本地代码后，需要重新构建镜像，并使用新镜像重新创建容器。
+- 容器数据库位于 `/app/data/papers.db`，与 Mac 项目中的数据库独立。
+- 本次未配置数据库持久化挂载；停止容器保留数据，删除容器会删除其可写层中的数据库。
