@@ -1291,7 +1291,7 @@ COPY 在构建镜像时复制文件，不会建立持续同步关系。
 
 ### 验证结果
 
-- 容器实际数据库路径：DOCKER_DB_PATH=/app/data/papers-persistent.db。
+- 容器实际数据库路径：/app/data/papers-persistent.db。
 - 新增论文的实际 ID：1。
 - 重启后能否读取原记录：能。
 - 删除容器并重新创建后能否读取原记录：能。
@@ -1312,3 +1312,5 @@ COPY 在构建镜像时复制文件，不会建立持续同步关系。
 - 所以说，这个卷其实就是一个目录，这个目录实际上是保存在本地的，由Docker Desktop管理，通过volumes:papers_data:声明，然后由volumes:papers_data:/app/data挂载到容器的data目录上，之后在容器中写入/app/data目录中的内容，都会保存到这个卷中，进行持久化存储。而保存在这个目录中的内容其实也不一定非要是数据库文件
 
 ### 遇到的问题
+
+无。
