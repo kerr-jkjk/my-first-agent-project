@@ -1,8 +1,6 @@
 import sqlite3
 from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DB_PATH = PROJECT_ROOT / "data" / "papers.db"
+from app.config import DB_PATH
 
 def get_connection() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)

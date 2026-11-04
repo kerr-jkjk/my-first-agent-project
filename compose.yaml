@@ -1,0 +1,21 @@
+services:
+  api:
+    build: .
+    image: my-first-agent-api:w04-persistent
+
+    ports:
+      - "127.0.0.1:8004:8000"
+
+    environment:
+      DB_PATH: "${DOCKER_DB_PATH:-/app/data/papers.db}"
+
+    # 将papers_data这个卷挂载到api容器的/app/data目录
+    volumes:
+      - papers_data:/app/data
+
+volumes:
+# 声明一个名为papers_data的命名卷，使用默认配置
+  papers_data:
+
+
+

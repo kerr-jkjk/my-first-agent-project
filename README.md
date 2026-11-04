@@ -201,3 +201,149 @@ docker start agent-api
 - 修改本地代码后，需要重新构建镜像，并使用新镜像重新创建容器。
 - 容器数据库位于 `/app/data/papers.db`，与 Mac 项目中的数据库独立。
 - 本次未配置数据库持久化挂载；停止容器保留数据，删除容器会删除其可写层中的数据库。
+
+
+## Docker Compose：数据持久化与配置
+
+使用 Compose 管理 API 容器，通过命名卷保存 SQLite 数据，并从外部传入数据库路径。
+
+以下命令均在项目根目录执行，需要先启动 Docker Desktop。
+
+### 1. 配置环境变量
+
+在本地 `.env` 中增加：
+
+```dotenv
+DOCKER_DB_PATH=/app/data/papers-persistent.db
+```
+
+已有 `.env` 时直接编辑，不要覆盖原配置。`.env.example` 中提供相同的配置示例，不填写真实密钥。
+
+配置传递过程：
+
+1. Compose 读取 `.env` 中的 `DOCKER_DB_PATH`。
+2. 根据 compose.yaml，为容器设置环境变量 `DB_PATH`。
+3. app/config.py 读取 `DB_PATH`。
+4. 数据库函数使用该路径。
+
+未设置 `DOCKER_DB_PATH` 时，Compose 使用 `/app/data/papers.db`。
+
+直接在 Mac 上运行 Python、且未设置 `DB_PATH` 时，Python 配置使用项目中的 `data/papers.db`。
+
+### 2. 构建与启动
+
+```bash
+# 构建镜像并在后台启动服务
+docker compose up -d --build
+
+# 查看服务状态
+docker compose ps
+
+# 查看最近的启动日志
+docker compose logs --tail=50 api
+```
+
+等待服务启动完成后，初始化数据库：
+
+```bash
+docker compose exec api python -c "from app.db import init_db; init_db()"
+```
+
+查看实际数据库路径：
+
+```bash
+docker compose exec api python -c "from app import db; print(db.DB_PATH)"
+```
+
+使用上述配置时，预期输出：
+
+```text
+/app/data/papers-persistent.db
+```
+
+访问：
+
+- 健康检查：http://127.0.0.1:8004/health
+- 接口文档：http://127.0.0.1:8004/docs
+- 论文列表：http://127.0.0.1:8004/papers
+
+### 3. 数据卷与数据库位置
+
+Compose 将命名卷 papers_data 挂载到容器的 `/app/data`：
+
+```yaml
+volumes:
+  - papers_data:/app/data
+```
+
+数据库需要保存在 `/app/data` 目录内，才能使用这块卷持久化。
+
+| 位置 | 用途 |
+|---|---|
+| Mac 项目目录 | 保存代码和运行配置 |
+| Docker 管理的命名卷 | 保存数据库文件 |
+| 容器内 `/app/data` | 访问数据卷的挂载位置 |
+
+在 macOS 上，卷数据位于 Docker Desktop 管理的 Linux 虚拟机磁盘中，不会自动出现在本地项目的 data/ 目录。
+
+可以在 Docker Desktop 的 Volumes 页面查看，或执行：
+
+```bash
+docker volume ls
+```
+
+实际卷名通常带有 Compose 项目前缀。
+
+### 4. 验证持久化
+
+通过 POST /papers 新增一条论文，记录实际返回的 ID，再查询确认。
+
+重启服务：
+
+```bash
+docker compose restart api
+```
+
+等待服务启动完成，再次查询该 ID，预期记录仍然存在。
+
+进一步验证删除、重建容器后数据是否保留：
+
+```bash
+docker compose down
+docker compose up -d
+```
+
+等待启动完成，直接查询原 ID，不重新新增记录。预期仍能读取相同的论文。
+
+验证时保持在同一项目目录，使用同一套 Compose 配置。
+
+### 5. 停止与再次启动
+
+停止并删除 Compose 管理的容器和网络，保留命名卷：
+
+```bash
+docker compose down
+```
+
+再次创建并启动：
+
+```bash
+docker compose up -d
+```
+
+不要为了日常停止服务使用 `docker compose down -v`，该选项会同时删除本配置声明的数据卷。
+
+### 6. 配置与代码更新
+
+- 修改 compose.yaml 或 `.env` 中的运行配置后，执行 `docker compose up -d`，让 Compose 按新配置更新容器。
+- 单独执行 `docker compose restart` 不会应用新的容器环境变量。
+- 修改 Python 代码后，执行 `docker compose up -d --build`，重新构建并更新容器。
+- 保持数据库文件位于挂载目录中，并继续使用同一个命名卷。
+
+### 7. 密钥与配置文件
+
+- 实际 `.env` 不提交 Git，也不复制进镜像。
+- `.env.example` 只提供配置示例。
+- Compose 本次只通过 environment 显式传入 DB_PATH，不会自动将 `.env` 中全部变量传入容器。
+- 日志不打印密钥、完整环境变量列表或完整配置对象。
+- 数据卷用于持久化，不等于备份。

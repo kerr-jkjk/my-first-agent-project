@@ -2,6 +2,7 @@ import os
 
 from dotenv import load_dotenv
 
+from pathlib import Path
 
 load_dotenv()
 
@@ -12,3 +13,13 @@ MY_API_KEY = os.getenv("MY_API_KEY")
 
 CSV_INPUT_PATH = os.getenv("CSV_INPUT_PATH", "data/sample.csv")
 CSV_PPL_THRESHOLD = float(os.getenv("CSV_PPL_THRESHOLD", "10"))
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+DB_PATH = Path(
+    os.getenv(
+        "DB_PATH",
+        str(PROJECT_ROOT / "data" / "papers.db")
+    )
+)
+
